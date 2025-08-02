@@ -1,0 +1,13 @@
+{
+  "name": "assemblyscript-counter-widget",
+  "version": "1.0.0",
+  "description": "Reactive counter widget built with AssemblyScript",
+  "scripts": {
+    "build": "asc src/counter.ts --target release --outFile build/counter.wasm --bindings esm --exportRuntime",
+    "serve": "node server.js",
+    "dev": "npm run build && npm run serve"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.27.0"
+  }
+}

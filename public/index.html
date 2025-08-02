@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssemblyScript Counter Widget</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .navigation {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .nav-link.active {
+            background: rgba(255,255,255,0.3);
+            font-weight: 600;
+        }
+        
+        .app-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        
+        .counter-widget, .test-widget, .error-widget {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 300px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .counter-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #333;
+            margin: 1rem 0;
+            transition: all 0.2s ease;
+        }
+        
+        .counter-display.updating {
+            transform: scale(1.1);
+            color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        
+        .btn-increment {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-decrement {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-reset, .btn-home {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-test {
+            background: #FF9800;
+            color: white;
+            margin: 1rem 0;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .stats {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .test-content, .benchmark-section {
+            margin: 2rem 0;
+            text-align: left;
+        }
+        
+        .test-results, .benchmark-results {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: monospace;
+        }
+        
+        .test-pass {
+            color: #4CAF50;
+            margin: 0.5rem 0;
+        }
+        
+        .test-fail {
+            color: #f44336;
+            margin: 0.5rem 0;
+        }
+        
+        .test-error {
+            color: #FF9800;
+            margin: 0.5rem 0;
+        }
+        
+        .test-summary {
+            font-weight: bold;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+        
+        .benchmark-result {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 4px;
+        }
+        
+        .benchmark-time {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="navigation">
+            <a href="/" data-route="/" class="nav-link">Counter</a>
+            <a href="/test" data-route="/test" class="nav-link">Test</a>
+        </nav>
+        
+        <main class="app-content">
+            <div id="app-content">
+                <!-- Content will be loaded here by router -->
+            </div>
+        </main>
+    </div>
+    
+    <script src="counter.js"></script>
+    <script src="router.js"></script>
+    <script>
+        let app;
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            // GitHub Pages SPA redirect handling
+            (function(l) {
+                if (l.search[1] === '/' ) {
+                    var decoded = l.search.slice(1).split('&').map(function(s) { 
+                        return s.replace(/~and~/g, '&')
+                    }).join('?');
+                    window.history.replaceState(null, null,
+                        l.pathname.slice(0, -1) + decoded + l.hash
+                    );
+                }
+            }(window.location))
+            
+            // Set up routing - this will handle the initial route
+            app = new CounterApp();
+        });
+    </script>
+</body>
+</html>
