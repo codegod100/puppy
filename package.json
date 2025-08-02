@@ -4,10 +4,11 @@
   "description": "Reactive counter widget built with AssemblyScript",
   "scripts": {
     "build": "asc src/counter.ts --target release --outFile build/counter.wasm --bindings esm --exportRuntime",
-    "serve": "node server.js",
-    "dev": "npm run build && npm run serve"
+    "serve": "bun server.js",
+    "dev": "bun run build && bun run serve"
   },
   "devDependencies": {
     "assemblyscript": "^0.27.0"
-  }
+  },
+  "packageManager": "bun@1.0.0"
 }
