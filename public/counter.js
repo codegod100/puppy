@@ -1,6 +1,6 @@
 class CounterWidget {
-    constructor(initialState = null) {
-        this.wasmModule = null;
+    constructor(wasmModule = null, initialState = null) {
+        this.wasmModule = wasmModule;
         this.keyboardListenerAdded = false;
         this.elements = {};
         this.initialState = initialState;
@@ -19,54 +19,21 @@ class CounterWidget {
     }
     
     async init() {
-        try {
-            this.updateElements();
-            
-            if (this.elements.perfInfo) {
-                this.elements.perfInfo.textContent = 'Loading WASM...';
-            }
-            
-            const imports = {
-                env: {
-                    memory: new WebAssembly.Memory({ initial: 1 }),
-                    abort: () => {
-                        throw new Error("AssemblyScript abort");
-                    }
-                }
-            };
-            
-            const basePath = window.APP_CONFIG ? window.APP_CONFIG.basePath : '';
-            const wasmPath = basePath ? basePath + '/counter.wasm' : './counter.wasm';
-            
-            const wasmModule = await WebAssembly.instantiateStreaming(
-                fetch(wasmPath),
-                imports
-            );
-            
-            this.wasmModule = wasmModule.instance.exports;
-            
-            // Restore state if provided
-            if (this.initialState) {
-                this.restoreState();
-            }
-            
+        this.updateElements();
+        
+        if (this.wasmModule) {
+            // WASM already loaded, just set up the widget
             this.setupEventListeners();
             this.updateDisplay();
             
             if (this.elements.perfInfo) {
-                this.elements.perfInfo.textContent = 'WASM Ready!';
-                
-                setTimeout(() => {
-                    if (this.elements.perfInfo) {
-                        this.elements.perfInfo.textContent = 'Running on WebAssembly';
-                    }
-                }, 1000);
+                this.elements.perfInfo.textContent = 'Running on WebAssembly';
             }
-            
-        } catch (error) {
-            console.error('Failed to load WASM module:', error);
+        } else {
+            // No WASM provided - this shouldn't happen with the new architecture
+            console.error('CounterWidget: No WASM module provided');
             if (this.elements.perfInfo) {
-                this.elements.perfInfo.textContent = 'WASM Load Failed';
+                this.elements.perfInfo.textContent = 'WASM module not provided';
             }
         }
     }
@@ -87,6 +54,13 @@ class CounterWidget {
         if (this.elements.resetBtn) {
             this.elements.resetBtn.addEventListener('click', () => {
                 this.performOperation(() => this.wasmModule.reset());
+                
+                // Clear history state on reset
+                if (window.counterApp) {
+                    const resetState = { value: 0, totalOperations: 1 }; // 1 operation for the reset
+                    history.replaceState(resetState, '', window.location.href);
+                    console.log('Reset history state:', resetState);
+                }
             });
         }
         
@@ -110,6 +84,13 @@ class CounterWidget {
                         if (e.ctrlKey || e.metaKey) return;
                         e.preventDefault();
                         this.performOperation(() => this.wasmModule.reset());
+                        
+                        // Clear history state on reset
+                        if (window.counterApp) {
+                            const resetState = { value: 0, totalOperations: this.wasmModule.getTotalOperations() };
+                            history.replaceState(resetState, '', window.location.href);
+                            console.log('Reset history state via keyboard:', resetState);
+                        }
                         break;
                 }
             };
@@ -164,6 +145,12 @@ class CounterWidget {
         const duration = (endTime - startTime).toFixed(3);
         
         this.updateDisplay();
+        
+        // Update history state after each operation
+        if (window.counterApp) {
+            const newState = window.counterApp.getCurrentState();
+            history.replaceState(newState, '', window.location.href);
+        }
         
         if (this.elements.perfInfo) {
             this.elements.perfInfo.textContent = `Last op: ${duration}ms`;

@@ -24,7 +24,10 @@ class Router {
     navigate(path) {
         const fullPath = window.APP_CONFIG && window.APP_CONFIG.basePath ? 
             window.APP_CONFIG.basePath + path : path;
-        history.pushState(null, '', fullPath);
+        
+        // Save current state before navigation
+        const currentState = window.counterApp ? window.counterApp.getCurrentState() : null;
+        history.pushState(currentState, '', fullPath);
         this.handleRoute();
     }
     
@@ -78,17 +81,90 @@ class CounterApp {
         this.router = new Router();
         this.counterWidget = null;
         this.currentView = null;
+        this.wasmModule = null; // Shared WASM instance
         this.counterState = {
             value: 0,
             totalOperations: 0
         };
-        this.counterInitialized = false;
         this.setupRoutes();
         
-        // Handle initial route after setup
-        setTimeout(() => {
+        // Initialize WASM once
+        this.initWasm().then(() => {
+            // Restore state from history after WASM is ready
+            const historyState = this.getStateFromHistory();
+            if (historyState) {
+                console.log('Restoring state from history:', historyState);
+                this.counterState = historyState;
+                this.restoreWasmState();
+            }
+            
+            // Handle initial route after WASM is ready
             this.router.handleRoute();
-        }, 0);
+        });
+    }
+    
+    async initWasm() {
+        if (this.wasmModule) return this.wasmModule;
+        
+        try {
+            const imports = {
+                env: {
+                    memory: new WebAssembly.Memory({ initial: 1 }),
+                    abort: () => {
+                        throw new Error("AssemblyScript abort");
+                    }
+                }
+            };
+            
+            const basePath = window.APP_CONFIG ? window.APP_CONFIG.basePath : '';
+            const wasmPath = basePath ? basePath + '/counter.wasm' : './counter.wasm';
+            
+            const wasmModule = await WebAssembly.instantiateStreaming(
+                fetch(wasmPath),
+                imports
+            );
+            
+            this.wasmModule = wasmModule.instance.exports;
+            
+            return this.wasmModule;
+        } catch (error) {
+            console.error('Failed to load WASM module:', error);
+            throw error;
+        }
+    }
+    
+    getStateFromHistory() {
+        return history.state;
+    }
+    
+    getCurrentState() {
+        if (this.wasmModule) {
+            return {
+                value: this.wasmModule.getCounter(),
+                totalOperations: this.wasmModule.getTotalOperations()
+            };
+        }
+        return this.counterState;
+    }
+    
+    restoreWasmState() {
+        if (!this.wasmModule) return;
+        
+        // Reset to 0 first
+        this.wasmModule.reset();
+        
+        // Restore the counter value
+        if (this.counterState.value !== 0) {
+            this.wasmModule.add(this.counterState.value);
+        }
+        
+        // Restore total operations by performing dummy operations
+        const currentOps = this.wasmModule.getTotalOperations();
+        const targetOps = this.counterState.totalOperations;
+        
+        for (let i = currentOps; i < targetOps - 1; i++) {
+            this.wasmModule.add(0); // No-op that increments operation count
+        }
     }
     
     setupRoutes() {
@@ -107,10 +183,13 @@ class CounterApp {
             return;
         }
         
-        // Save current state if widget exists
-        if (this.counterWidget && this.counterWidget.wasmModule) {
-            this.counterState.value = this.counterWidget.wasmModule.getCounter();
-            this.counterState.totalOperations = this.counterWidget.wasmModule.getTotalOperations();
+        // Update state from history if available
+        const historyState = this.getStateFromHistory();
+        if (historyState) {
+            this.counterState = historyState;
+            if (this.wasmModule) {
+                this.restoreWasmState();
+            }
         }
         
         // Destroy any existing widgets
@@ -146,7 +225,7 @@ class CounterApp {
         
         // Wait for DOM to be ready
         setTimeout(() => {
-            this.counterWidget = new CounterWidget(this.counterState);
+            this.counterWidget = new CounterWidget(this.wasmModule, this.counterState);
         }, 0);
     }
     
@@ -159,11 +238,10 @@ class CounterApp {
             return;
         }
         
-        // Save current counter state before switching
-        if (this.counterWidget && this.counterWidget.wasmModule) {
-            this.counterState.value = this.counterWidget.wasmModule.getCounter();
-            this.counterState.totalOperations = this.counterWidget.wasmModule.getTotalOperations();
-            console.log('Saved counter state:', this.counterState);
+        // Save current counter state to history
+        if (this.wasmModule) {
+            this.counterState = this.getCurrentState();
+            history.replaceState(this.counterState, '', window.location.href);
         }
         
         // Destroy counter widget
@@ -191,7 +269,7 @@ class CounterApp {
             </div>
         `;
         
-        const testWidget = new TestWidget();
+        const testWidget = new TestWidget(this.wasmModule);
     }
     
     show404() {
@@ -208,37 +286,17 @@ class CounterApp {
 }
 
 class TestWidget {
-    constructor() {
-        this.wasmModule = null;
+    constructor(wasmModule) {
+        this.wasmModule = wasmModule;
         this.init();
     }
     
     async init() {
-        try {
-            const imports = {
-                env: {
-                    memory: new WebAssembly.Memory({ initial: 1 }),
-                    abort: () => {
-                        throw new Error("AssemblyScript abort");
-                    }
-                }
-            };
-            
-            const basePath = window.APP_CONFIG ? window.APP_CONFIG.basePath : '';
-            const wasmPath = basePath ? basePath + '/counter.wasm' : './counter.wasm';
-            
-            const wasmModule = await WebAssembly.instantiateStreaming(
-                fetch(wasmPath),
-                imports
-            );
-            
-            this.wasmModule = wasmModule.instance.exports;
+        if (this.wasmModule) {
             this.setupEventListeners();
-            
-        } catch (error) {
-            console.error('Failed to load WASM module:', error);
+        } else {
             document.getElementById('test-results').innerHTML = 
-                '<div class="error">Failed to load WASM module</div>';
+                '<div class="error">WASM module not available</div>';
         }
     }
     
