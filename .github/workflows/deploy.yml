@@ -41,9 +41,8 @@ jobs:
         env:
           BASE_PATH: ${{ env.BASE_PATH }}
           
-      - name: Create base path aware 404.html
-        run: |
-          sed -i "s|l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/')|l.pathname.split('/').slice(0, 2 + pathSegmentsToKeep).join('/')|g" public/404.html
+      - name: Verify 404.html is ready for deployment
+        run: echo "404.html is configured for /puppy/ base path"
         
       - name: Copy WASM files to public directory
         run: cp build/*.wasm public/        

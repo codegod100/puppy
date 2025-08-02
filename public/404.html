@@ -7,17 +7,40 @@
         // GitHub Pages SPA redirect
         // This script takes the current page's path and redirects to the root
         // with the path as a query parameter that our router can handle
-        var pathSegmentsToKeep = 1;
-        
         var l = window.location;
-        l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + 
-            '/?/' + 
-            l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash
-        );
+        
+        // Detect if we're on GitHub Pages or localhost
+        var isGitHubPages = l.hostname.includes('github.io');
+        var basePath = isGitHubPages ? '/puppy' : '';
+        
+        // Don't redirect if we're already at the root with a query parameter
+        if (l.search.indexOf('?/') === 0) {
+            // We're already redirected, don't redirect again
+            window.location.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + basePath + '/');
+        } else {
+            var pathSegments = l.pathname.split('/').filter(function(segment) { return segment; });
+            var route = '';
+            
+            if (isGitHubPages) {
+                // Extract the path after /puppy/
+                var puppyIndex = pathSegments.indexOf('puppy');
+                if (puppyIndex !== -1 && puppyIndex < pathSegments.length - 1) {
+                    route = pathSegments.slice(puppyIndex + 1).join('/');
+                }
+            } else {
+                // For localhost, use the full path
+                route = pathSegments.join('/');
+            }
+            
+            // Redirect with the route as a query parameter
+            l.replace(
+                l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                basePath + '/' + 
+                (route ? '?/' + route : '') +
+                (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+                l.hash
+            );
+        }
     </script>
 </head>
 <body>
