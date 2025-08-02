@@ -77,10 +77,12 @@ class CounterApp {
     constructor() {
         this.router = new Router();
         this.counterWidget = null;
+        this.currentView = null;
         this.counterState = {
             value: 0,
             totalOperations: 0
         };
+        this.counterInitialized = false;
         this.setupRoutes();
         
         // Handle initial route after setup
@@ -99,6 +101,12 @@ class CounterApp {
     async showCounter() {
         console.log('Showing counter widget');
         
+        // Don't re-render if we're already showing the counter
+        if (this.currentView === 'counter') {
+            console.log('Already showing counter, skipping re-render');
+            return;
+        }
+        
         // Save current state if widget exists
         if (this.counterWidget && this.counterWidget.wasmModule) {
             this.counterState.value = this.counterWidget.wasmModule.getCounter();
@@ -110,10 +118,18 @@ class CounterApp {
             this.counterWidget.destroy();
         }
         
+        this.currentView = 'counter';
+        
+        // Determine the correct color based on saved state
+        const isPositive = this.counterState.value > 0;
+        const isZero = this.counterState.value === 0;
+        const displayColor = isPositive ? '#4CAF50' : isZero ? '#333' : '#f44336';
+        const fontSize = Math.abs(this.counterState.value) > 999 ? '3rem' : '4rem';
+        
         document.getElementById('app-content').innerHTML = `
             <div class="counter-widget">
                 <h1>AssemblyScript Counter</h1>
-                <div id="counter-display" class="counter-display">${this.counterState.value}</div>
+                <div id="counter-display" class="counter-display" style="color: ${displayColor}; font-size: ${fontSize};">${this.counterState.value}</div>
                 
                 <div class="button-group">
                     <button id="btn-decrement" class="btn-decrement">-</button>
@@ -137,6 +153,12 @@ class CounterApp {
     async showTest() {
         console.log('Showing test widget');
         
+        // Don't re-render if we're already showing the test
+        if (this.currentView === 'test') {
+            console.log('Already showing test, skipping re-render');
+            return;
+        }
+        
         // Save current counter state before switching
         if (this.counterWidget && this.counterWidget.wasmModule) {
             this.counterState.value = this.counterWidget.wasmModule.getCounter();
@@ -149,6 +171,8 @@ class CounterApp {
             this.counterWidget.destroy();
             this.counterWidget = null;
         }
+        
+        this.currentView = 'test';
         
         document.getElementById('app-content').innerHTML = `
             <div class="test-widget">
@@ -171,6 +195,8 @@ class CounterApp {
     }
     
     show404() {
+        this.currentView = '404';
+        
         document.getElementById('app-content').innerHTML = `
             <div class="error-widget">
                 <h1>404 - Route Not Found</h1>

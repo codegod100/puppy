@@ -53,6 +53,14 @@
             padding: 2rem;
         }
         
+        #app-content {
+            transition: opacity 0.15s ease-in-out;
+        }
+        
+        #app-content.transitioning {
+            opacity: 0;
+        }
+        
         .counter-widget, .test-widget, .error-widget {
             background: white;
             border-radius: 16px;
