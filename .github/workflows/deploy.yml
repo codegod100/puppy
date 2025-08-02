@@ -15,6 +15,9 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+env:
+  BASE_PATH: /puppy
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +35,12 @@ jobs:
         
       - name: Build AssemblyScript
         run: bun run build
+        env:
+          BASE_PATH: ${{ env.BASE_PATH }}
+          
+      - name: Create base path aware 404.html
+        run: |
+          sed -i "s|l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/')|l.pathname.split('/').slice(0, 2 + pathSegmentsToKeep).join('/')|g" public/404.html
         
       - name: Setup Pages
         uses: actions/configure-pages@v4

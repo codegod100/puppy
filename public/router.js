@@ -22,12 +22,20 @@ class Router {
     }
     
     navigate(path) {
-        history.pushState(null, '', path);
+        const fullPath = window.APP_CONFIG && window.APP_CONFIG.basePath ? 
+            window.APP_CONFIG.basePath + path : path;
+        history.pushState(null, '', fullPath);
         this.handleRoute();
     }
     
     handleRoute() {
-        const path = window.location.pathname;
+        let path = window.location.pathname;
+        
+        // Remove base path if present
+        if (window.APP_CONFIG && window.APP_CONFIG.basePath) {
+            path = path.replace(window.APP_CONFIG.basePath, '') || '/';
+        }
+        
         this.currentRoute = path;
         
         console.log('Handling route:', path);
@@ -190,8 +198,11 @@ class TestWidget {
                 }
             };
             
+            const basePath = window.APP_CONFIG ? window.APP_CONFIG.basePath : '';
+            const wasmPath = basePath + '/counter.wasm';
+            
             const wasmModule = await WebAssembly.instantiateStreaming(
-                fetch('/test.wasm'),
+                fetch(wasmPath),
                 imports
             );
             

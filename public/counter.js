@@ -35,8 +35,11 @@ class CounterWidget {
                 }
             };
             
+            const basePath = window.APP_CONFIG ? window.APP_CONFIG.basePath : '';
+            const wasmPath = basePath + '/counter.wasm';
+            
             const wasmModule = await WebAssembly.instantiateStreaming(
-                fetch('/counter.wasm'),
+                fetch(wasmPath),
                 imports
             );
             
